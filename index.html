@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pou AI Voice Chat Character</title>
+<style type="text/css">
+/* --- GAYA DASAR POU (MODIFIKASI) --- */
+*,
+*:before,
+*:after {
+    box-sizing: border-box;
+    transition: none; 
+}
+
+:root {
+    --bg: rgb(241, 226, 136);
+    --size: 70;
+    --unit: calc(var(--size) / 512 * 1vmin);
+    --pou-color: #D3A05A; /* Warna kulit Pou */
+    --eye-size: calc(512 * var(--unit) * 0.23); 
+}
+
+body {
+    background-color: var(--bg);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.controls {
+    position: fixed;
+    top: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    z-index: 1000;
+}
+
+.pou {
+    height: calc(512 * var(--unit));
+    width: calc(512 * var(--unit));
+    position: relative;
+}
+
+.pou__body {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+/* Bagian atas dan bawah Pou (Visual) */
+.pou__body--top {
+    height: 71%;
+    background-color: var(--pou-color);
+    width: 81.47%;
+    border-radius: 146% 146% 0 0/ 278% 278% 0 0;
+    clip-path: inset(0 0 40% 0);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid black;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.pou__body--bottom {
+    height: 71%;
+    background-color: rgb(167, 0, 0); 
+    width: 75.8%;
+    border-radius: 0 0 50% 50%/ 0 0 24% 24%;
+    clip-path: inset(59.6% 0 0 0);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid black;
+    z-index: 5;
+}
+
+/* Hidung dan Jambul */
+.pou__body:after {
+    content: '';
+    position: absolute;
+    border-radius: 100%;
+    transform: rotate(21deg);
+    top: 13%;
+    left: 44%;
+    height: 17%;
+    width: 30%;
+    background-color: darkred;
+    clip-path: inset(0 0 50% 0);
+    z-index: 15; 
+}
+
+.pou__body::before {
+    content: '';
+    position: absolute;
+    border-radius: 100%;
+    transform: rotate(21deg);
+    top: 11%;
+    left: 60%;
+    height: 4%;
+    width: 5%;
+    background-color: rgb(66, 0, 0);
+    z-index: 15;
+}
+
+
+/* --- INTEGRASI GAYA MATA DINAMIS (POSISI BARU) --- */
+
+.eye-container {
+    /* Posisi mata relatif terhadap .pou__body--top */
+    position: absolute;
+    top: 16%; 
+    left: 50%; 
+    transform: translateX(-50%);
+    display: flex;
+    gap: calc(512 * var(--unit) * 0.05);
+    z-index: 20;
+}
+
+.eye {
+    width: calc(512 * var(--unit) * 0.18); 
+    height: calc(512 * var(--unit) * 0.23); 
+    background: white;
+    border-radius: 50%;
+    border: 2px solid black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.pupil {
+    width: 35%;
+    height: 35%; 
+    background: black;
+    border-radius: 50%;
+    position: absolute;
+    transition: transform 0.1s linear; 
+}
+.reflection {
+    width: 15%;
+    height: 15%;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 10%;
+    left: 15%;
+}
+.eyelid {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: var(--pou-color);
+    border-radius: 50%;
+    top: -100%;
+    transition: top 0.1s linear;
+}
+
+.listening {
+    border-color: #00aaff;
+    box-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+    animation: pulse-listening 1s infinite alternate;
+}
+@keyframes pulse-listening {
+    0% { box-shadow: 0 0 10px rgba(0, 170, 255, 0.5); }
+    100% { box-shadow: 0 0 15px rgba(0, 170, 255, 0.8); }
+}
+
+
+/* --- INTEGRASI GAYA MULUT DINAMIS (POSISI BARU) --- */
+
+.pou-mouth-wrapper {
+    /* Posisi mulut di bawah mata dan di tengah */
+    position: absolute;
+    top: 55%; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+}
+.mouth {
+    width: calc(512 * var(--unit) * 0.25);
+    height: calc(512 * var(--unit) * 0.04); 
+    background: black;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: height 0.1s ease-out; 
+}
+
+.mouth-inner {
+    width: 90%;
+    height: 4px;
+    background: limegreen; 
+    border-radius: 2px;
+    position: absolute;
+    transition: transform 0.1s ease-out; 
+}
+
+
+/* --- GAYA UI --- */
+
+.button-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    justify-content: center;
+}
+.action-button {
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s, transform 0.1s;
+}
+.action-button:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+.info-text {
+    margin-top: 10px;
+    color: #555;
+    font-size: 13px;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 5px;
+    min-height: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="controls">
+    <div class="button-container">
+        <button id="permission-button" class="action-button">Aktifkan Sensor Gerak (Gyro)</button>
+        <button id="talk-button" class="action-button">Mulai Bicara (Mic)</button>
+    </div>
+    <div class="info-text" id="status-text">
+        <span style="font-weight: bold; color: #cc0000;">Loading...</span>
+    </div>
+    <div class="info-text" id="transcript-text" style="font-weight: bold; color: #008000;"></div>
+</div>
+<div class="pou">
+    <div class="pou__body">
+        <div class="pou__body--top">
+            <div class="eye-container">
+                <div class="eye" id="eye-left">
+                    <div class="pupil">
+                        <div class="reflection"></div>
+                    </div>
+                    <div class="eyelid"></div>
+                </div>
+                <div class="eye" id="eye-right">
+                    <div class="pupil">
+                        <div class="reflection"></div>
+                    </div>
+                    <div class="eyelid"></div>
+                </div>
+            </div>
+            <div class="pou-mouth-wrapper">
+                 <div class="mouth" id="mouth">
+                    <div class="mouth-inner" id="mouthInner"></div>
+                 </div>
+            </div>
+        </div>
+        <div class="pou__body--bottom"></div>
+    </div>
+</div>
+
+<audio id="voice" preload="auto"></audio> 
+
+<script type="text/javascript">
+// =========================================================================
+// KONSTANTA & VARIABEL
+// =========================================================================
+const MAX_PUPIL_DISTANCE = 25; 
+const IDLE_MOVEMENT_RANGE = 7; 
+const eyes = document.querySelectorAll('.eye');
+const mouth = document.getElementById('mouth');
+const mouthInner = document.getElementById('mouthInner');
+const gyroButton = document.getElementById('permission-button');
+const talkButton = document.getElementById('talk-button');
+const statusText = document.getElementById('status-text');
+const transcriptText = document.getElementById('transcript-text');
+
+let GEMINI_API_KEY = localStorage.getItem('geminiApiKey') || '';
+let CONVERSATION_HISTORY = [];
+let isListening = false;
+let isSpeaking = false;
+let isProcessing = false;
+let isBlinking = false;
+let hasGreeted = false;
+let mouthInterval;
+
+const SENSITIVITY = 0.4; 
+const MAX_ANGLE = 40; 
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechSynthesis = window.speechSynthesis;
+const SpeechSynthesisUtterance = window.SpeechSynthesisUtterance;
+let recognition;
+
+
+// =========================================================================
+//                             FUNGSI PERGERAKAN WAJAH
+// =========================================================================
+
+function blinkRandomly() {
+    if (isBlinking) return;
+    isBlinking = true;
+    const eyelids = document.querySelectorAll('.eyelid');
+    eyelids.forEach(eyelid => { eyelid.style.top = '0%'; });
+    setTimeout(() => {
+        eyelids.forEach(eyelid => { eyelid.style.top = '-100%'; });
+        isBlinking = false;
+    }, 100);
+}
+
+function setRandomBlinkInterval() {
+    const randomTime = Math.random() * 4000 + 3000;
+    setTimeout(() => {
+        blinkRandomly();
+        setRandomBlinkInterval();
+    }, randomTime);
+}
+
+function moveEyesRandomly() {
+    if (isListening || isSpeaking || isProcessing || gyroButton.disabled) {
+        setTimeout(moveEyesRandomly, Math.random() * 3000 + 2000); 
+        return;
+    }
+
+    const randomX = (Math.random() - 0.5) * 2 * IDLE_MOVEMENT_RANGE; 
+    const randomY = (Math.random() - 0.5) * 2 * IDLE_MOVEMENT_RANGE;
+
+    eyes.forEach(eye => {
+        const pupil = eye.querySelector('.pupil');
+        pupil.style.transform = `translate(${randomX}px, ${randomY}px)`;
+    });
+
+    setTimeout(moveEyesRandomly, Math.random() * 3000 + 2000);
+}
+
+function setMouthSpeaking(speaking) {
+    if (mouthInterval) clearInterval(mouthInterval);
+    isSpeaking = speaking;
+    
+    if (speaking) {
+        const pouUnit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--unit'));
+        const minHeight = 4 * pouUnit;
+        const maxHeight = 10 * pouUnit; 
+
+        mouthInterval = setInterval(() => {
+            const mouthHeight = minHeight + Math.random() * (maxHeight - minHeight); 
+            mouth.style.height = `${mouthHeight}px`;
+
+            const scaleX = 0.8 + Math.random() * 0.4;
+            const scaleY = 1 + Math.random() * 2;
+            const translateY = Math.random() * 2 - 1; 
+
+            mouthInner.style.transform = `scaleX(${scaleX}) scaleY(${scaleY}) translateY(${translateY}px)`;
+        }, 80);
+    } else {
+        mouth.style.height = 'calc(512 * var(--unit) * 0.04)';
+        mouthInner.style.transform = `scaleX(1) scaleY(1) translateY(0px)`;
+    }
+}
+
+function setCharacterListening(listening) {
+    isListening = listening;
+    eyes.forEach(eye => {
+        if (listening) {
+            eye.classList.add('listening');
+        } else {
+            eye.classList.remove('listening');
+        }
+    });
+}
+
+// =========================================================================
+//                             FUNGSI GYROSCOPE
+// =========================================================================
+
+function handleDeviceOrientation(event) {
+    let beta = event.beta; 
+    let gamma = event.gamma;
+
+    beta = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, beta));
+    gamma = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, gamma));
+
+    const normalizedX = (gamma / MAX_ANGLE) * SENSITIVITY;
+    const normalizedY = (beta / MAX_ANGLE) * SENSITIVITY; 
+
+    const deltaX = normalizedX * MAX_PUPIL_DISTANCE;
+    const deltaY = -normalizedY * MAX_PUPIL_DISTANCE; 
+
+    eyes.forEach(eye => {
+        const pupil = eye.querySelector('.pupil');
+        pupil.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    });
+}
+
+function requestSensorPermission() {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    window.addEventListener('deviceorientation', handleDeviceOrientation);
+                    gyroButton.textContent = 'Sensor Gerak AKTIF';
+                    gyroButton.disabled = true;
+                    statusText.textContent = 'Arahkan HP Anda untuk menggerakkan mata!';
+                } else {
+                    statusText.textContent = 'Izin sensor gerak tidak diberikan.';
+                }
+            })
+            .catch(error => {
+                 statusText.textContent = 'Gagal mengaktifkan sensor. Coba di Chrome/Edge.';
+            });
+    } else {
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
+        gyroButton.textContent = 'Sensor Gerak AKTIF';
+        gyroButton.disabled = true;
+        statusText.textContent = 'Arahkan HP Anda untuk menggerakkan mata!';
+    }
+}
+
+// =========================================================================
+//                          FUNGSI TTS NATIVE (SpeechSynthesis)
+// =========================================================================
+
+function getGreeting() {
+    const hour = new Date().getHours();
+    let greeting = "Halo! ";
+    if (hour >= 5 && hour < 10) {
+        greeting = "Selamat pagi! ";
+    } else if (hour >= 10 && hour < 15) {
+        greeting = "Selamat siang! ";
+    } else if (hour >= 15 && hour < 18) {
+        greeting = "Selamat sore! ";
+    } else {
+        greeting = "Selamat malam! ";
+    }
+    return hasGreeted ? "Ada yang bisa saya bantu?" : greeting + "Saya asisten Pou Anda. Ada yang bisa saya bantu hari ini?";
+}
+
+function speakResponse(text) {
+    if (!text || !SpeechSynthesis) return;
+    
+    if (SpeechSynthesis.speaking) {
+        SpeechSynthesis.cancel();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'id-ID'; 
+
+    utterance.onstart = () => {
+        setMouthSpeaking(true);
+        transcriptText.textContent = `Pou: ${text}`;
+        isProcessing = true;
+    };
+    
+    utterance.onend = () => {
+        setMouthSpeaking(false);
+        isProcessing = false;
+        talkButton.disabled = false;
+        
+        if (!hasGreeted) hasGreeted = true;
+
+        if (isListening) {
+             startListening(); 
+        } else {
+            statusText.textContent = 'Siap.';
+        }
+    };
+
+    utterance.onerror = (event) => {
+         console.error('Speech Synthesis Error:', event.error);
+         setMouthSpeaking(false);
+         isProcessing = false;
+         talkButton.disabled = false;
+         statusText.textContent = 'Error Suara. Siap.';
+         if (isListening) startListening();
+    };
+
+    SpeechSynthesis.speak(utterance);
+}
+
+
+// =========================================================================
+//                          FUNGSI LOGIKA GEMINI
+// =========================================================================
+
+function validateSetup() {
+    if (!SpeechRecognition || !SpeechSynthesis) {
+        statusText.innerHTML = 'Browser Anda **tidak mendukung** Web Speech API.';
+        talkButton.disabled = true;
+        return false;
+    }
+    
+    if (!GEMINI_API_KEY) {
+        const key = prompt("Masukkan Kunci API Gemini Anda:");
+        if (key && key.trim().length > 10) {
+            GEMINI_API_KEY = key.trim();
+            localStorage.setItem('geminiApiKey', GEMINI_API_KEY);
+            statusText.innerHTML = 'Kunci API tersimpan. Tekan "Mulai Bicara".';
+            return true;
+        } else {
+            statusText.innerHTML = '<span style="color:red; font-weight:bold;">Kunci API tidak valid. Tekan Mic lagi untuk memasukkan.</span>';
+            return false;
+        }
+    }
+    return true;
+}
+
+async function getGeminiReply(userCommand) {
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    CONVERSATION_HISTORY.push({ role: 'user', parts: [{ text: userCommand }] });
+    
+    statusText.textContent = 'Pou Berpikir...';
+    
+    const requestBody = {
+        contents: CONVERSATION_HISTORY.slice(-10),
+        generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 150,
+        }
+    };
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            const msg = data.error?.message || `Kesalahan API: ${response.status}. Periksa Kunci API.`;
+            throw new Error(msg);
+        }
+        
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, saya tidak dapat merespons saat ini.';
+        
+        CONVERSATION_HISTORY.push({ role: 'model', parts: [{ text: replyText }] });
+        
+        return replyText;
+
+    } catch (error) {
+        console.error('Gemini Error:', error);
+        return `Kesalahan AI: ${error.message.substring(0, 80)}. Coba bersihkan obrolan.`;
+    }
+}
+
+
+// =========================================================================
+//                          FUNGSI SPEECH RECOGNITION
+// =========================================================================
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        setCharacterListening(true);
+        talkButton.textContent = 'Mendengarkan... (Tekan untuk Stop)';
+        statusText.textContent = 'Silakan Bicara ke Pou...';
+        transcriptText.textContent = '';
+        isProcessing = true;
+    };
+
+    recognition.onend = () => {
+        setCharacterListening(false);
+        talkButton.textContent = 'Mulai Bicara (Mic)';
+        
+        if (!isProcessing && !isSpeaking) { 
+            statusText.textContent = 'Siap.';
+            talkButton.disabled = false;
+        }
+    };
+
+    recognition.onresult = async (event) => {
+        const command = event.results[0][0].transcript;
+        transcriptText.textContent = `Anda: ${command}`;
+        
+        talkButton.disabled = true;
+
+        const reply = await getGeminiReply(command);
+        
+        transcriptText.textContent = `Pou: ${reply}`;
+        speakResponse(reply); 
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech Recognition Error:', event.error);
+        statusText.textContent = `Mik Error: ${event.error}.`;
+        setCharacterListening(false);
+        isProcessing = false;
+        talkButton.disabled = false;
+    };
+    
+} 
+
+function startListening() {
+    if (!validateSetup()) return;
+    if (isProcessing || isSpeaking) return;
+
+    try {
+        recognition.start();
+    } catch (e) {
+        console.warn('Recognition start failed:', e);
+    }
+}
+
+// =========================================================================
+//                          INISIALISASI
+// =========================================================================
+
+gyroButton.addEventListener('click', requestSensorPermission);
+
+talkButton.addEventListener('click', () => {
+    if (!validateSetup()) return;
+    
+    if (!hasGreeted && CONVERSATION_HISTORY.length === 0) {
+        const greetingText = getGreeting();
+        speakResponse(greetingText);
+        return; 
+    }
+
+    if (!isListening && !isSpeaking && !isProcessing) {
+        startListening();
+    } else if (isListening) {
+        recognition.stop();
+    }
+});
+
+window.addEventListener('load', () => {
+    setRandomBlinkInterval();
+    moveEyesRandomly();
+    
+    if (SpeechRecognition && SpeechSynthesis) {
+        if (!GEMINI_API_KEY) {
+            statusText.innerHTML = 'Tekan "Mulai Bicara" dan masukkan API Key Gemini.';
+            talkButton.disabled = false;
+        } else {
+            statusText.innerHTML = 'Siap. Tekan "Mulai Bicara".';
+            talkButton.disabled = false;
+        }
+    }
+    
+    // Hapus animasi CSS bawaan Pou yang bertabrakan dengan kontrol JS (tetap penting)
+    const styleTag = document.getElementById('dcoder_stylesheet');
+    if (styleTag) {
+        styleTag.textContent = styleTag.textContent.replace(/@keyframes blink {[^}]*}/g, '');
+        styleTag.textContent = styleTag.textContent.replace(/@keyframes movePupil {[^}]*}/g, '');
+        styleTag.textContent = styleTag.textContent.replace(/@keyframes mouth {[^}]*}/g, '');
+        styleTag.textContent = styleTag.textContent.replace(/animation: [^;]*;/g, ' ');
+    }
+    
+});
+</script>
+</body>
+</html>
