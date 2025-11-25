@@ -114,7 +114,7 @@ body {
 }
 
 
-/* --- INTEGRASI GAYA MATA DINAMIS (POSISI BARU) --- */
+/* --- INTEGRASI GAYA MATA DINAMIS (POSISI RAPI) --- */
 
 .eye-container {
     /* Posisi mata relatif terhadap .pou__body--top */
@@ -182,7 +182,6 @@ body {
 /* --- INTEGRASI GAYA MULUT DINAMIS (POSISI BARU) --- */
 
 .pou-mouth-wrapper {
-    /* Posisi mulut di bawah mata dan di tengah */
     position: absolute;
     top: 55%; 
     left: 50%;
@@ -305,7 +304,7 @@ let GEMINI_API_KEY = localStorage.getItem('geminiApiKey') || '';
 let CONVERSATION_HISTORY = [];
 let isListening = false;
 let isSpeaking = false;
-let isProcessing = false;
+let isProcessing = false; // TRUE hanya ketika AI berpikir/TTS berbicara
 let isBlinking = false;
 let hasGreeted = false;
 let mouthInterval;
@@ -474,12 +473,12 @@ function speakResponse(text) {
     utterance.onstart = () => {
         setMouthSpeaking(true);
         transcriptText.textContent = `Pou: ${text}`;
-        isProcessing = true;
+        // isProcessing sudah diset true di onresult
     };
     
     utterance.onend = () => {
         setMouthSpeaking(false);
-        isProcessing = false;
+        isProcessing = false; // Selesai berbicara, AI/TTS selesai
         talkButton.disabled = false;
         
         if (!hasGreeted) hasGreeted = true;
@@ -487,7 +486,7 @@ function speakResponse(text) {
         if (isListening) {
              startListening(); 
         } else {
-            statusText.textContent = 'Siap.';
+            statusText.textContent = 'Siap. Tekan "Mulai Bicara".';
         }
     };
 
@@ -567,6 +566,10 @@ async function getGeminiReply(userCommand) {
 
     } catch (error) {
         console.error('Gemini Error:', error);
+        // Jika terjadi error Gemini, kita set isProcessing=false dan re-enable button
+        isProcessing = false; 
+        talkButton.disabled = false;
+        statusText.textContent = 'Error AI. Siap.';
         return `Kesalahan AI: ${error.message.substring(0, 80)}. Coba bersihkan obrolan.`;
     }
 }
@@ -587,24 +590,29 @@ if (SpeechRecognition) {
         talkButton.textContent = 'Mendengarkan... (Tekan untuk Stop)';
         statusText.textContent = 'Silakan Bicara ke Pou...';
         transcriptText.textContent = '';
-        isProcessing = true;
+        // isProcessing tetap false, karena AI belum mulai bekerja
     };
 
     recognition.onend = () => {
         setCharacterListening(false);
         talkButton.textContent = 'Mulai Bicara (Mic)';
         
-        if (!isProcessing && !isSpeaking) { 
-            statusText.textContent = 'Siap.';
+        // Cek apakah sedang memproses respons AI (isProcessing = true)
+        if (!isProcessing) { 
+            // Jika isProcessing false, artinya mic berhenti karena manual stop atau no-speech.
+            // Mic harus diaktifkan kembali.
+            statusText.textContent = 'Siap. Tekan "Mulai Bicara".';
             talkButton.disabled = false;
         }
+        // Jika isProcessing TRUE, tombol tetap disabled sampai speakResponse.onend
     };
 
     recognition.onresult = async (event) => {
         const command = event.results[0][0].transcript;
         transcriptText.textContent = `Anda: ${command}`;
         
-        talkButton.disabled = true;
+        isProcessing = true; // AI mulai bekerja
+        talkButton.disabled = true; // Matikan tombol selama proses AI
 
         const reply = await getGeminiReply(command);
         
@@ -614,10 +622,20 @@ if (SpeechRecognition) {
 
     recognition.onerror = (event) => {
         console.error('Speech Recognition Error:', event.error);
-        statusText.textContent = `Mik Error: ${event.error}.`;
+        
+        // FIX: Reset semua flag dan enable tombol, mengatasi kondisi error macet
         setCharacterListening(false);
         isProcessing = false;
         talkButton.disabled = false;
+        talkButton.textContent = 'Mulai Bicara (Mic)';
+        
+        if (event.error === 'no-speech') {
+             statusText.textContent = 'Tidak ada ucapan terdeteksi. Coba lagi.';
+        } else if (event.error === 'not-allowed') {
+             statusText.textContent = 'Izin Mic Ditolak. Izinkan di pengaturan browser.';
+        } else {
+             statusText.textContent = `Mik Error: ${event.error}. Siap.`;
+        }
     };
     
 } 
@@ -626,11 +644,17 @@ function startListening() {
     if (!validateSetup()) return;
     if (isProcessing || isSpeaking) return;
 
-    try {
-        recognition.start();
-    } catch (e) {
-        console.warn('Recognition start failed:', e);
-    }
+    // Tambahkan delay kecil untuk menghindari error restart di beberapa browser
+    setTimeout(() => {
+        try {
+            recognition.start();
+        } catch (e) {
+            console.warn('Recognition start failed:', e);
+            // Jika gagal start, pastikan tombol bisa diklik lagi
+            talkButton.disabled = false;
+            statusText.textContent = 'Gagal mulai mendengarkan. Coba lagi.';
+        }
+    }, 100); 
 }
 
 // =========================================================================
@@ -642,16 +666,25 @@ gyroButton.addEventListener('click', requestSensorPermission);
 talkButton.addEventListener('click', () => {
     if (!validateSetup()) return;
     
+    // Sapaan awal (hanya sekali)
     if (!hasGreeted && CONVERSATION_HISTORY.length === 0) {
         const greetingText = getGreeting();
         speakResponse(greetingText);
         return; 
     }
 
-    if (!isListening && !isSpeaking && !isProcessing) {
-        startListening();
-    } else if (isListening) {
+    if (isListening) {
+        // Jika sedang mendengarkan dan diklik, stop recognition
         recognition.stop();
+        // Feedback instan:
+        setCharacterListening(false);
+        talkButton.textContent = 'Mulai Bicara (Mic)';
+        statusText.textContent = 'Dihentikan. Siap.';
+        talkButton.disabled = false; // Aktifkan tombol agar bisa langsung diklik lagi
+    } else if (!isSpeaking && !isProcessing) {
+        // Jika siap dan diklik, mulai mendengarkan
+        talkButton.disabled = true; // Segera nonaktifkan untuk menghindari double click
+        startListening();
     }
 });
 
